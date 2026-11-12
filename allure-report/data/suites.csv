@@ -1,0 +1,5 @@
+"DESCRIPTION","DURATION IN MS","NAME","PARENT SUITE","START TIME","STATUS","STOP TIME","SUB SUITE","SUITE","TEST CLASS","TEST METHOD"
+"","1","连续识别失败，框架内部触发熔断抛出异常","tests","2026-11-10","skipped","2026-11-10","","test_healing_circuit","",""
+"","9264","test_healing_mutate","tests","2026-11-10","passed","2026-11-10","","test_healing_mutate","",""
+"","3648","test_healing_mutate","tests","2026-11-10","broken","2026-11-10","","test_healing_demo","",""
+"","10","test_healing_cache_hit","tests","2026-11-10","broken","2026-11-10","","test_healing_cache_hit","",""

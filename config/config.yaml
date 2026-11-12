@@ -1,0 +1,37 @@
+# ========== 浏览器基础配置 ==========
+browser:
+  driver_type: "playwright"
+  headless: false
+  timeout: 10000
+  viewport_width: 1280
+  viewport_height: 720
+
+# ========== 自愈全局开关与风控 ==========
+healing:
+  enable: true
+  confidence_threshold: 0.85
+  max_retry: 3
+  backoff_initial: 1
+  circuit_break_limit: 3
+
+# ========== 模型配置 ==========
+llm:
+  use_mock: true
+  api_key: ""
+  model_name: "glm-4v"
+  base_url: "https://open.bigmodel.cn/api/paas/v4/"
+
+# ========== 视觉Agent配置（新增，对接vision_agent.py） ==========
+vision:
+  agent_type: "mock"       # mock / record / ollama
+  ollama:
+    model: "moondream"
+  record_json_path: "config/mock_vision_result.json"
+  black_list: ["popup_ad", "close_tip", "banner_notice"]
+  white_list: ["login_username_demo_001", "login_pwd_demo_001", "login_btn_demo_001"]
+
+# ========== 路径配置 ==========
+storage:
+  report_root: "./reports"
+  log_root: "./logs"
+  log_file: "./reports/healing_log.jsonl"

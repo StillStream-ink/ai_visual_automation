@@ -1,0 +1,29 @@
+login_username:
+  locator:
+  - coordinate
+  - - 100
+    - 200
+  update_ts: 1794031796.3206613
+  env: test
+  ttl_seconds: 604800
+login_username_demo_001:
+  locator:
+  - 170
+  - 220
+  update_ts: 1794220547.0074954
+  env: test
+  ttl_seconds: 604800
+login_pwd:
+  locator:
+  - 170
+  - 270
+  update_ts: 1794220556.213823
+  env: test
+  ttl_seconds: 604800
+submit_btn:
+  locator:
+  - 170
+  - 330
+  update_ts: 1794220565.8841836
+  env: test
+  ttl_seconds: 604800

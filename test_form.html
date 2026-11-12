@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh‑CN">
+<head>
+    <meta charset="UTF‑8">
+    <title>测试表单页面</title>
+</head>
+<body>
+    <h2>简单提交表单</h2>
+    <input type="text" id="msg_input" placeholder="请输入内容">
+    <br><br>
+    <button id="submit_btn">提交</button>
+    <div id="result" style="margin‑top:20px;color:green;"></div>
+
+    <script>
+        const btn = document.querySelector('#submit_btn');
+        const input = document.querySelector('#msg_input');
+        const resultDiv = document.querySelector('#result');
+        btn.onclick = ()=>{
+            const val = input.value.trim();
+            if(val){
+                resultDiv.innerText = "提交成功";
+            }else{
+                resultDiv.innerText = "输入不能为空";
+            }
+        }
+    </script>
+</body>
+</html>

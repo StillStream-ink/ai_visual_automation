@@ -1,0 +1,6 @@
+{
+  "login_username_demo_001": {"x": 150, "y": 180, "confidence": 0.88},
+  "login_pwd": {"x": 220, "y": 220, "confidence": 0.88},
+  "submit_btn": {"x": 260, "y": 280, "confidence": 0.95},
+  "wrong_key_001": {"error": "元素未匹配，置信度不足"}
+}

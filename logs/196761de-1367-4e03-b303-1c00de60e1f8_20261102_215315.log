@@ -1,0 +1,19 @@
+2026-11-02 21:53:18,629 | INFO   | 打开网页：file:///xxx/test_form.html
+2026-11-02 21:53:18,778 | ERROR  | 步骤异常 打开网页：file:///xxx/test_form.html：Page.goto: net::ERR_FILE_NOT_FOUND at file:///xxx/test_form.html
+Call log:
+  - navigating to "file:///xxx/test_form.html", waiting until "load"
+
+2026-11-02 21:53:19,758 | ERROR  | 不识别指令：等待1秒
+2026-11-02 21:53:19,759 | INFO   | 输入：test123
+2026-11-02 21:53:19,850 | ERROR  | 步骤异常 输入文字：test123：Page.fill: Error: Element is not an <input>, <textarea>, <select> or [contenteditable] and does not have a role allowing [aria-readonly]
+Call log:
+  - waiting for locator("body")
+    - locator resolved to <body class="neterror">…</body>
+    - fill("test123")
+  - attempting fill action
+    - waiting for element to be visible, enabled and editable
+
+2026-11-02 21:53:19,930 | INFO   | 视觉点击坐标 (109,88)
+2026-11-02 21:53:20,107 | ERROR  | 不识别指令：等待1秒
+2026-11-02 21:53:20,107 | INFO   | 视觉断言：预期页面包含【页面显示提交成功】，DOM二次校验
+2026-11-02 21:53:20,733 | INFO   | 报告已保存：reports\196761de-1367-4e03-b303-1c00de60e1f8\report.md

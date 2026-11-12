@@ -1,0 +1,16 @@
+# 环境变量与密钥（致命！绝对不能传）
+.env
+
+# 测试状态与日志（包含个人登录数据或本地记录）
+state.json
+healing_logs.json
+*.xlsx
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# 虚拟环境
+venv/
+env/
