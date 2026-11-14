@@ -1,105 +1,85 @@
 import json
-import base64
-from pathlib import Path
-import requests
+import time
+from typing import Optional, Tuple
+from playwright.sync_api import Page
+from healing.vision_agent import BaseVisionAgent
+from healing.cache_service import ElementCacheService
 from healing.exceptions import VisionRecognizeError
-from healing.filter import ElementFilter
-
-filter_ins = ElementFilter()
+from healing.vision_agent import ElementFilter
 
 
-class BaseVisionAgent:
-    """抽象父类，统一接口，面向对象规范"""
-    def find_element_coordinates(self, img_bytes, template_key: str):
-        raise NotImplementedError("子类必须实现 find_element_coordinates")
+class HealingService:
+    def __init__(
+        self,
+        vision_agent: BaseVisionAgent,
+        cache_service: ElementCacheService,
+        viewport_w: int = 1280,
+        viewport_h: int = 720
+    ):
+        self.vision_agent = vision_agent
+        self.cache_service = cache_service
+        self.viewport_w = viewport_w
+        self.viewport_h = viewport_h
+        self.filter = ElementFilter()
 
+    def pixel_to_css(self, pixel_x: float, pixel_y: float, screenshot_w: int, screenshot_h: int) -> Tuple[float, float]:
+        """
+        截图像素坐标 → Playwright elementFromPoint 使用的CSS视口坐标
+        Mock / CV模板匹配 / Ollama 输出的都是截图像素，统一在这里换算
+        """
+        css_x = pixel_x * (self.viewport_w / screenshot_w)
+        css_y = pixel_y * (self.viewport_h / screenshot_h)
+        return css_x, css_y
 
-class MockVisionAgent(BaseVisionAgent):
-    def find_element_coordinates(self, img_bytes, template_key: str):
-        """适配 1280*720 视口 SauceDemo登录页 精准坐标"""
-        coord_map = {
-            "login_username_demo_001": (156, 264, 0.9, "用户名输入框匹配成功"),
-            "login_pwd_demo_001": (156, 314, 0.9, "密码输入框匹配成功"),
-            "login_btn_demo_001": (156, 376, 0.9, "登录按钮匹配成功"),
-        }
-        if template_key in coord_map:
-            x, y, confidence, msg = coord_map[template_key]
-            # 黑白名单 + 置信度校验
-            ok, check_msg = filter_ins.check(template_key, confidence)
-            if not ok:
-                raise VisionRecognizeError(f"视觉过滤拦截：{check_msg}")
-            print(f"☑ MockVisionAgent DEBUG ==== {msg} x={x},y={y} confidence={confidence}")
-            return x, y, msg
-        else:
-            raise VisionRecognizeError(f"Mock未识别模板：{template_key}")
+    def _get_screenshot(self, page: Page) -> Tuple[bytes, int, int]:
+        """截图，返回图片字节、截图宽高"""
+        import cv2
+        import numpy as np
+        screenshot_bytes = page.screenshot(full_page=False)
+        arr = np.frombuffer(screenshot_bytes, np.uint8)
+        img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+        h, w = img.shape[:2]
+        return screenshot_bytes, w, h
 
+    def locate_element_by_vision(self, page: Page, template_key: str) -> Tuple[float, float]:
+        """
+        自愈定位主逻辑：先查缓存，缓存失效再调用视觉识别
+        返回：换算完成后的CSS坐标 (css_x, css_y)
+        """
+        # 1. 优先读取缓存
+        cache_item = self.cache_service.get(template_key)
+        if cache_item is not None:
+            return cache_item.locator
 
-class RecordVisionAgent(BaseVisionAgent):
-    """预录制json模式，笔记本演示用，联动全局置信度阈值"""
-    def __init__(self, json_path: str = "config/mock_vision_result.json"):
-        fp = Path(json_path)
-        if fp.exists():
-            text = fp.read_text(encoding="utf-8").strip()
-            self.data = json.loads(text) if text else {}
-        else:
-            self.data = {}
+        # 2. 缓存未命中，截图调用视觉识别
+        img_bytes, scr_w, scr_h = self._get_screenshot(page)
+        pixel_x, pixel_y, conf, msg = self.vision_agent.find_element_coordinates(img_bytes, template_key)
 
-    def find_element_coordinates(self, img_bytes, template_key: str):
-        res = self.data.get(template_key)
-        if not res:
-            raise VisionRecognizeError(f"录制数据中未找到template_key: {template_key}")
-        if "error" in res:
-            raise VisionRecognizeError(res["error"])
+        if pixel_x is None or pixel_y is None:
+            raise VisionRecognizeError(f"视觉定位失败：{msg}")
 
-        x = res["x"]
-        y = res["y"]
-        confidence = res.get("confidence", 0.0)
-        # 统一走filter校验（黑白名单+置信度）
-        ok, check_msg = filter_ins.check(template_key, confidence)
-        if not ok:
-            raise VisionRecognizeError(f"视觉过滤拦截：{check_msg}")
+        # 3. 像素坐标转CSS坐标
+        css_x, css_y = self.pixel_to_css(pixel_x, pixel_y, scr_w, scr_h)
 
-        msg = f"录制识别成功，置信度：{confidence}"
-        print(f"\n==== RecordVisionAgent DEBUG ====")
-        print(f"收到 template_key = [{template_key}]")
-        print(f"☑ 匹配成功，x={x},y={y}，置信度={confidence}")
-        return x, y, msg
+        # 4. 写入缓存（缓存存换算后的css坐标）
+        self.cache_service.set(
+            template_key=template_key,
+            locator=(css_x, css_y),
+            confidence=conf
+        )
+        return css_x, css_y
 
+    def click_by_vision(self, page: Page, template_key: str):
+        """视觉自愈点击"""
+        x, y = self.locate_element_by_vision(page, template_key)
+        page.evaluate("(x, y) => document.elementFromPoint(x, y)", x, y)
+        page.click(position={"x": x, "y": y})
 
-class OllamaVisionAgent(BaseVisionAgent):
-    """Ollama Moondream 本地多模态视觉版本"""
-    def __init__(self, model_name: str = "moondream", ollama_url: str = "http://127.0.0.1:11434/api/generate"):
-        self.model_name = model_name
-        self.ollama_url = ollama_url
-
-    def find_element_coordinates(self, img_bytes, template_key: str):
-        img_b64 = base64.b64encode(img_bytes).decode("utf-8")
-        prompt = f"""
-你是UI自动化视觉定位助手，在截图里找到【{template_key}】元素。
-只返回json格式，字段 x,y,confidence，是元素中心点像素坐标和置信度0~1，不要多余文字。
-示例：{{"x":120,"y":340,"confidence":0.92}}
-"""
-        payload = {
-            "model": self.model_name,
-            "prompt": prompt,
-            "images": [img_b64],
-            "stream": False
-        }
-        try:
-            resp = requests.post(self.ollama_url, json=payload, timeout=15)
-            resp.raise_for_status()
-            result = resp.json()
-            content = result.get("response", "")
-            coord_json = json.loads(content)
-            x = float(coord_json["x"])
-            y = float(coord_json["y"])
-            confidence = float(coord_json.get("confidence", 0.0))
-
-            # 黑白名单+置信度过滤
-            ok, check_msg = filter_ins.check(template_key, confidence)
-            if not ok:
-                raise VisionRecognizeError(f"视觉过滤拦截：{check_msg}")
-
-            return x, y, f"ollama识别成功，置信度={confidence}"
-        except Exception as e:
-            raise VisionRecognizeError(f"Ollama视觉识别失败: {str(e)}")
+    def fill_by_vision(self, page: Page, template_key: str, value: str):
+        """视觉自愈输入"""
+        x, y = self.locate_element_by_vision(page, template_key)
+        # 先点击聚焦
+        page.click(position={"x": x, "y": y})
+        # 清空原有内容
+        page.keyboard.press("Control+A")
+        page.keyboard.type(value)

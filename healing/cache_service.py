@@ -1,4 +1,3 @@
-# cache_service.py
 import yaml
 import time
 from pathlib import Path
@@ -11,6 +10,7 @@ class CacheItem:
     locator: Any
     update_ts: float
     env: str
+    confidence: float
     ttl_seconds: int = 86400 * 7  # 默认7天过期
 
 
@@ -22,58 +22,43 @@ class ElementCacheService:
         self._load()
 
     def _load(self):
-        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-        if not self.cache_path.exists():
-            self.cache = {}
-            return
-        with open(self.cache_path, "r", encoding="utf-8") as f:
-            raw = yaml.safe_load(f)
-        if not isinstance(raw, dict):
-            raw = {}
-        self.cache = {}
-        now = time.time()
-        for elem_id, data in raw.items():
-            if not isinstance(data, dict):
-                continue
-            try:
-                loc = data.get("locator")
-                if isinstance(loc, list) and len(loc) == 2 and all(isinstance(x, (int, float)) for x in loc):
-                    data["locator"] = tuple(loc)
-                item = CacheItem(**data)
-                self.cache[elem_id] = item
-            except Exception:
-                continue
+        if self.cache_path.exists():
+            raw = yaml.safe_load(self.cache_path.read_text(encoding="utf-8")) or {}
+            for k, v in raw.items():
+                loc = v["locator"]
+                if isinstance(loc, list):
+                    v["locator"] = tuple(loc)
+                self.cache[k] = CacheItem(**v)
 
-    def save(self, elem_id: str, loc_data):
+    def _save(self):
+        raw_data = {}
+        for k, item in self.cache.items():
+            d = asdict(item)
+            if isinstance(d["locator"], tuple):
+                d["locator"] = list(d["locator"])
+            raw_data[k] = d
+        self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+        # 加上 sort_keys=False 避免顺序乱，关键：不自动加python标签
+        self.cache_path.write_text(yaml.dump(raw_data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+
+    def set(self, template_key: str, locator, confidence: float):
         item = CacheItem(
-            locator=loc_data,
+            locator=locator,
             update_ts=time.time(),
             env=self.env,
-            ttl_seconds=86400 * 7
+            confidence=confidence
         )
-        self.cache[elem_id] = item
-        self._persist()
+        self.cache[template_key] = item
+        self._save()
 
-    def get(self, element_id: str) -> Optional[Any]:
-        item = self.cache.get(element_id)
+    def get(self, template_key: str) -> Optional[CacheItem]:
+        item = self.cache.get(template_key)
         if not item:
             return None
-        now = time.time()
-        if now - item.update_ts >= item.ttl_seconds:
-            del self.cache[element_id]
-            self._persist()
+        if time.time() - item.update_ts > item.ttl_seconds:
+            del self.cache[template_key]
+            self._save()
             return None
         if item.env != self.env:
             return None
-        return item.locator
-
-    def _persist(self):
-        dump_data = {}
-        for k, v in self.cache.items():
-            d = asdict(v)
-            loc = d.get("locator")
-            if isinstance(loc, tuple):
-                d["locator"] = list(loc)
-            dump_data[k] = d
-        with open(self.cache_path, "w", encoding="utf-8") as f:
-            yaml.safe_dump(dump_data, f, allow_unicode=True, sort_keys=False)
+        return item

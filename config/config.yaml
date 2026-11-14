@@ -23,12 +23,12 @@ llm:
 
 # ========== 视觉Agent配置（新增，对接vision_agent.py） ==========
 vision:
-  agent_type: "mock"       # mock / record / ollama
+  agent_type: "mock"     # mock / record / ollama
   ollama:
     model: "moondream"
   record_json_path: "config/mock_vision_result.json"
   black_list: ["popup_ad", "close_tip", "banner_notice"]
-  white_list: ["login_username_demo_001", "login_pwd_demo_001", "login_btn_demo_001"]
+  white_list: ["login_username_demo_001", "login_password_demo_001", "login_btn_demo_001"]
 
 # ========== 路径配置 ==========
 storage:

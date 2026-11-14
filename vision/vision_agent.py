@@ -12,16 +12,15 @@ class VisionAgent:
         nparr = np.frombuffer(img_bytes, np.uint8)
         screen_img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if screen_img is None:
-            return None, None, "截图解析失败"
+            return None, None, 0.0, "截图解析失败"
 
-        # ✅ 这里改成 query，query 就是模板文件名（如 user_input.png）
         template_path = self.template_dir / query
         if not template_path.exists():
-            return None, None, f"模板文件不存在：{query}"
+            return None, None, 0.0, f"模板文件不存在：{query}"
 
         template = cv2.imread(str(template_path))
         if template is None:
-            return None, None, f"模板图片读取失败：{query}"
+            return None, None, 0.0, f"模板图片读取失败：{query}"
 
         t_h, t_w = template.shape[:2]
         result = cv2.matchTemplate(screen_img, template, cv2.TM_CCOEFF_NORMED)
@@ -29,20 +28,22 @@ class VisionAgent:
         match_points = list(zip(*match_loc[::-1]))
 
         if not match_points:
-            return None, None, "模板匹配失败，相似度低于阈值"
+            return None, None, 0.0, "模板匹配失败，相似度低于阈值"
 
         match_x, match_y = match_points[0]
+        # 取出这个点的置信度
+        conf = float(result[match_y, match_x])
         center_x = int(match_x + t_w / 2)
         center_y = int(match_y + t_h / 2)
-        return center_x, center_y, "ok"
+        return center_x, center_y, conf, "ok"
 
     def heal_by_vision(self, img, template_key, element_id, target_desc, case_name):
         """给BasePage调用的统一入口"""
         if not template_key:
             return None
-        x, y, msg = self.find_element_coordinates(img, template_key)
+        x, y, conf, msg = self.find_element_coordinates(img, template_key)
         if x is not None and y is not None:
-            return (x, y)
+            return (x, y, conf)
         return None
 
     def set_threshold(self, val: float):

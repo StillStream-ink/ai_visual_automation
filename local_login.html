@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Local Login Demo</title>
+    <style>
+        body {width:1280px;height:720px;margin:0;padding:40px;box-sizing:border-box;}
+        .wrap {margin-top:180px;margin-left:120px;}
+        input {display:block;width:220px;padding:8px;margin:12px 0;font-size:16px;}
+        button {padding:8px 20px;cursor:pointer;}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <input id="user-name" placeholder="username">
+        <input id="password" type="password" placeholder="password">
+        <button id="login-btn">Login</button>
+    </div>
+    <script>
+        const userInp = document.getElementById('user-name');
+        const pwdInp = document.getElementById('password');
+        const btn = document.getElementById('login-btn');
+        const tip = document.createElement('div');
+        tip.style.marginTop = "10px";
+        document.querySelector('.wrap').appendChild(tip);
+
+        btn.onclick = ()=>{
+            if(userInp.value === "admin" && pwdInp.value === "123456"){
+                tip.innerText = "LOGIN_SUCCESS";
+                tip.style.color="green";
+            }else{
+                tip.innerText = "LOGIN_FAIL";
+                tip.style.color="red";
+            }
+        }
+    </script>
+</body>
+</html>

@@ -5,6 +5,7 @@ import requests
 from healing.exceptions import VisionRecognizeError
 from healing.filter import ElementFilter
 
+
 filter_ins = ElementFilter()
 
 
@@ -16,22 +17,17 @@ class BaseVisionAgent:
 
 class MockVisionAgent(BaseVisionAgent):
     def find_element_coordinates(self, img_bytes, template_key: str):
-        """适配 1280*720 视口 SauceDemo登录页 精准坐标"""
+        """适配 1280*720 视口 SauceDemo登录页 精准坐标，直接命中INPUT"""
         coord_map = {
             "login_username_demo_001": (156, 264, 0.9, "用户名输入框匹配成功"),
-            "login_pwd_demo_001": (156, 314, 0.9, "密码输入框匹配成功"),
-            "login_btn_demo_001": (156, 376, 0.9, "登录按钮匹配成功"),
+            "login_password_demo_001": (156, 310, 0.9, "密码输入框匹配成功"),
+            "login_btn_demo_001": (156, 360, 0.9, "登录按钮匹配成功"),
         }
-        if template_key in coord_map:
-            x, y, confidence, msg = coord_map[template_key]
-            # 黑白名单 + 置信度校验
-            ok, check_msg = filter_ins.check(template_key, confidence)
-            if not ok:
-                raise VisionRecognizeError(f"视觉过滤拦截：{check_msg}")
-            print(f"☑ MockVisionAgent DEBUG ==== {msg} x={x},y={y} confidence={confidence}")
-            return x, y, msg
-        else:
-            raise VisionRecognizeError(f"Mock未识别模板：{template_key}")
+
+        if template_key not in coord_map:
+            raise VisionRecognizeError(f"mock找不到模板：{template_key}")
+        return coord_map[template_key]
+
 
 
 class RecordVisionAgent(BaseVisionAgent):
@@ -63,7 +59,7 @@ class RecordVisionAgent(BaseVisionAgent):
         print(f"\n==== RecordVisionAgent DEBUG ====")
         print(f"收到 template_key = [{template_key}]")
         print(f"☑ 匹配成功，x={x},y={y}，置信度={confidence}")
-        return x, y, msg
+        return x, y, confidence, msg
 
 
 class OllamaVisionAgent(BaseVisionAgent):
@@ -100,6 +96,6 @@ class OllamaVisionAgent(BaseVisionAgent):
             if not ok:
                 raise VisionRecognizeError(f"视觉过滤拦截：{check_msg}")
 
-            return x, y, f"ollama识别成功，置信度={confidence}"
+            return x, y, confidence, f"ollama识别成功，置信度={confidence}"
         except Exception as e:
             raise VisionRecognizeError(f"Ollama视觉识别失败: {str(e)}")
