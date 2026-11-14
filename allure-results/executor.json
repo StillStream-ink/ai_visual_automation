@@ -1,7 +1,0 @@
-{
-  "name": "AI视觉自愈自动化框架",
-  "type": "pytest",
-  "url": "",
-  "build": "v1.0.0",
-  "reportName": "AI自愈测试报告"
-}

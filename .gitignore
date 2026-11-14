@@ -1,16 +1,28 @@
 # 环境变量与密钥（致命！绝对不能传）
 .env
+.env.local
 
 # 测试状态与日志（包含个人登录数据或本地记录）
 state.json
 healing_logs.json
 *.xlsx
+*.log
 
 # Python 缓存
 __pycache__/
 *.py[cod]
+*$py.class
 .pytest_cache/
 
 # 虚拟环境
 venv/
 env/
+
+# 测试报告、运行产物（不要提交）
+allure-results/
+report.html
+assets/element_repair.yaml
+
+# 操作系统文件
+.DS_Store
+Thumbs.db

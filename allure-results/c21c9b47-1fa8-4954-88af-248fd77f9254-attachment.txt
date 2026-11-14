@@ -1,4 +1,0 @@
-【DEBUG】DOM变异完成，原选择器已经失效
-【DEBUG】输入框坐标 css_x=156,css_y=264，拿到元素tag=None
-【DEBUG】输入框坐标 css_x=156,css_y=310，拿到元素tag=None
-【DEBUG】识别到按钮 x=156,y=360
